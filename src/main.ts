@@ -4,22 +4,40 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  // 1. UYGULAMAYI OLUŞTURURKEN CORS'U AKTİF ET
-  const app = await NestFactory.create(AppModule, {
-    cors: {
-      origin: true,
-      methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-      credentials: true,
-      allowedHeaders: 'Content-Type, Accept, Authorization, X-Requested-With',
-      preflightContinue: false,
-      optionsSuccessStatus: 204,
+  const app = await NestFactory.create(AppModule);
+
+  // --- 1. ADIM: MANUEL OVERRIDE MIDDLEWARE ---
+  // NestJS'in kendi CORS'una güvenmiyoruz, kapıyı en tepeden biz açıyoruz.
+  app.use((req, res, next) => {
+    // Vercel domainini ve localhostu kabul et
+    const allowedOrigins = [
+      'https://clinic-management-ui.vercel.app',
+      'http://localhost:3000'
+    ];
+    const origin = req.headers.origin;
+
+    if (allowedOrigins.includes(origin)) {
+      res.header('Access-Control-Allow-Origin', origin);
+    } else {
+      res.header('Access-Control-Allow-Origin', '*'); // Fallback
     }
+
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,PATCH,OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization, X-Requested-With');
+    res.header('Access-Control-Allow-Credentials', 'true');
+
+    // KRİTİK NOKTA: OPTIONS isteği gelirse router'a gitmeden 200 OK ver ve bitir.
+    if (req.method === 'OPTIONS') {
+      return res.status(200).send();
+    }
+    next();
   });
 
-  // 2. GLOBAL PREFIX'İ ELİNLE YAZ (Hata payını silmek için)
+  // --- 2. ADIM: GLOBAL PREFIX ---
+  // Railway Variables'tan değil, el ile yazıyoruz ki hata payı kalmasın.
   app.setGlobalPrefix('api/v1');
 
-  // 3. SWAGGER (Aynı kalabilir)
+  // Swagger ve ValidationPipe (Olduğu gibi kalabilir)
   const config = new DocumentBuilder()
     .setTitle('Clinic Management API')
     .setVersion('1.0')
@@ -28,13 +46,14 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
-  // 4. VALIDATION
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+  app.useGlobalPipes(new ValidationPipe({ 
+    whitelist: true, 
+    transform: true,
+    forbidNonWhitelisted: true 
+  }));
 
-  // 5. PORT AYARI (Railway'in verdiği PORT değişkenini al)
+  // Port ayarı
   const port = process.env.PORT || 3000;
-  await app.listen(port, '0.0.0.0'); // 0.0.0.0 dış dünyaya açılmasını garantiler
-
-  console.log(`🚀 API yayında: Port ${port} | Prefix: api/v1`);
+  await app.listen(port, '0.0.0.0');
 }
 bootstrap();
