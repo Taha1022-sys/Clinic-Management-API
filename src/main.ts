@@ -4,37 +4,40 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
+  // 1. Uygulamayı oluştur
   const app = await NestFactory.create(AppModule);
 
-  // 1. CORS: HİÇBİR KISITLAMA YOK (Debug için)
+  // 2. CORS'u aç (Wildcard: Herkese izin ver - Debug için)
   app.enableCors({
-    origin: '*', // Güvenlik falan siktir et, şu an çalışması lazım
+    origin: true, // Gelen isteği kabul et
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: '*',
-    credentials: true, // Not: origin '*' iken credentials true bazen patlar ama NestJS halleder.
-                       // Eğer hata verirse origin: 'https://clinic-management-ui.vercel.app' yaparız.
+    credentials: true,
   });
 
-  // 2. GLOBAL PREFIX KODUNU SİLDİK. YOK ARTIK.
-  // app.setGlobalPrefix(...) -> ÇÖPE ATTIK.
+  // 3. Global Prefix Ayarla (Standart: api/v1)
+  app.setGlobalPrefix('api/v1');
 
-  // 3. SWAGGER
+  // 4. Swagger Ayarları
   const config = new DocumentBuilder()
     .setTitle('Clinic Management API')
+    .setDescription('API Documentation')
     .setVersion('1.0')
     .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'JWT-auth')
     .build();
-  
-  const document = SwaggerModule.createDocument(app, config);
-  // Swagger'ı kök dizine değil, elle verdiğimiz yola kuruyoruz
-  SwaggerModule.setup('api/v1/docs', app, document); 
 
+  const document = SwaggerModule.createDocument(app, config);
+  
+  // ÖNEMLİ: Swagger yolu prefix'ten etkilenir.
+  // Prefix 'api/v1' olduğu için, buraya 'docs' yazarsak adres: /api/v1/docs olur.
+  SwaggerModule.setup('docs', app, document); 
+
+  // 5. Validation
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
+  // 6. Port ve Başlatma
   const port = process.env.PORT || 3000;
   await app.listen(port, '0.0.0.0');
 
   console.log(`🚀 Server running on port ${port}`);
-  console.log(`📄 Swagger: http://localhost:${port}/api/v1/docs`);
 }
 bootstrap();
