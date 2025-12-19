@@ -4,49 +4,75 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  // 1. CORS'u UYGULAMA OLUŞURKEN AÇIYORUZ (En garanti yöntem)
+  // 1. Create app with CORS enabled at the factory level
   const app = await NestFactory.create(AppModule, {
-    cors: {
-      origin: true, // Vercel, Localhost ne gelirse kabul et (Production'da da çalışır)
-      methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-      credentials: true,
-    },
+    cors: true, // Enable CORS before any routing
   });
 
-  // 2. PREFIX'i SABİTLİYORUZ (Hata payı yok)
+  // 2. Set global prefix FIRST (before any middleware or configuration)
   const globalPrefix = 'api/v1';
-  app.setGlobalPrefix(globalPrefix);
+  app.setGlobalPrefix(globalPrefix, {
+    exclude: [], // Don't exclude anything from the prefix
+  });
 
-  // 3. VALIDATION PIPE
+  // 3. Configure CORS middleware AFTER prefix is set
+  // This ensures CORS is applied to ALL prefixed routes
+  app.enableCors({
+    origin: true, // In production, replace with your Vercel domain
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    credentials: true,
+    preflightContinue: false, // Don't pass OPTIONS to route handlers
+    optionsSuccessStatus: 204, // Standard preflight response
+  });
+
+  // 4. Global validation pipe
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       transform: true,
-      forbidNonWhitelisted: true,
+      forbidNonWhitelisted:  true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
     }),
   );
 
-  // 4. SWAGGER AYARLARI
-  // Prefix olduğu için Swagger: /api/v1/docs adresinde çalışacak
+  // 5. Swagger configuration
   const config = new DocumentBuilder()
     .setTitle('Clinic Management API')
-    .setDescription('API Documentation')
+    .setDescription('API Documentation for Clinic Management System')
     .setVersion('1.0')
+    .addServer(`/${globalPrefix}`, 'API v1') // Add server with prefix
     .addBearerAuth(
-      { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'Authorization',
+        description: 'Enter JWT token',
+        in: 'header',
+      },
       'JWT-auth',
     )
     .build();
-  
-  const document = SwaggerModule.createDocument(app, config);
-  // Swagger'ı 'docs' yoluna kuruyoruz (Global prefix ile /api/v1/docs olur)
-  SwaggerModule.setup('docs', app, document);
 
-  // 5. PORT AYARI
-  const port = process.env.PORT || 3000;
+  const document = SwaggerModule.createDocument(app, config);
+  
+  // Setup Swagger at /api/v1/docs (respecting the global prefix)
+  SwaggerModule.setup(`${globalPrefix}/docs`, app, document, {
+    customSiteTitle: 'Clinic API Docs',
+    customfavIcon: 'https://nestjs.com/img/logo_text.svg',
+    customCss: '. swagger-ui .topbar { display: none }',
+  });
+
+  // 6. Port configuration
+  const port = process. env.PORT || 3000;
   await app.listen(port, '0.0.0.0');
 
-  console.log(`🚀 Application is running on: http://localhost:${port}/${globalPrefix}`);
-  console.log(`📄 Swagger is running on: http://localhost:${port}/${globalPrefix}/docs`);
+  console.log(`\n🚀 Application is running on: http://localhost:${port}/${globalPrefix}`);
+  console.log(`📄 Swagger docs available at: http://localhost:${port}/${globalPrefix}/docs`);
+  console.log(`🌍 CORS is enabled for all origins (configure for production! )\n`);
 }
+
 bootstrap();
