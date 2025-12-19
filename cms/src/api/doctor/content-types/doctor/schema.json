@@ -1,0 +1,44 @@
+{
+  "kind": "collectionType",
+  "collectionName": "doctors",
+  "info": {
+    "singularName": "doctor",
+    "pluralName": "doctors",
+    "displayName": "Doctor"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Fullname": {
+      "type": "string"
+    },
+    "Title": {
+      "type": "string"
+    },
+    "Branch": {
+      "type": "enumeration",
+      "enum": [
+        "Hair Transplant",
+        "Dental",
+        "Plastic Surgery"
+      ]
+    },
+    "Biography": {
+      "type": "blocks"
+    },
+    "Experience": {
+      "type": "integer"
+    },
+    "is_active": {
+      "type": "boolean"
+    },
+    "Price": {
+      "type": "decimal"
+    },
+    "contact_email": {
+      "type": "email"
+    }
+  }
+}

@@ -1,0 +1,28 @@
+# Bağımlılıklar (Bunlar yüklenmez, çok şişirir)
+node_modules/
+*/node_modules/
+cms/node_modules/
+
+# Derlenmiş dosyalar
+dist/
+build/
+.tmp/
+.cache/
+
+# Çevresel Değişkenler (ŞİFRELER BURADA, SAKIN YÜKLEME)
+.env
+.env.*
+cms/.env
+cms/.env.*
+
+# Docker ve IDE dosyaları
+.vscode/
+.idea/
+docker-data/
+postgres_data/
+pgadmin_data/
+strapi_data/
+
+# Loglar
+*.log
+npm-debug.log*

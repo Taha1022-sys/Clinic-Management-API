@@ -1,0 +1,14 @@
+node_modules/
+build/
+dist/
+.cache/
+.tmp/
+data.db
+.env
+.env.*
+.strapi/
+exports/
+public/uploads/*
+!public/uploads/.gitkeep
+.DS_Store
+Thumbs.db
