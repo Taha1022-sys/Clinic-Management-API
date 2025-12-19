@@ -7,19 +7,24 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Get ConfigService
+  // 1. ADIM: CORS'u EN BAŞA TAŞIDIK (Preflight isteklerini kaçırmamak için)
+  app.enableCors({
+    origin: true, // Gelen her güvenli isteği yansıtır, Vercel eşleşme hatasını bitirir.
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    credentials: true,
+    allowedHeaders: 'Content-Type, Accept, Authorization, X-Requested-With',
+  });
+
   const configService = app.get(ConfigService);
 
-  // Global prefix
+  // 2. ADIM: Global Prefix
   const apiPrefix = configService.get<string>('API_PREFIX') || 'api/v1';
   app.setGlobalPrefix(apiPrefix);
 
-  // Swagger Configuration
+  // 3. ADIM: Swagger Yapılandırması
   const config = new DocumentBuilder()
     .setTitle('Clinic Management System API')
-    .setDescription(
-      'RESTful API documentation for the Clinic Management System. This API provides endpoints for user authentication, patient management, doctor management, and appointments.',
-    )
+    .setDescription('RESTful API documentation for the Clinic Management System.')
     .setVersion('1.0')
     .addBearerAuth(
       {
@@ -32,23 +37,14 @@ async function bootstrap() {
       },
       'JWT-auth',
     )
-    .addTag('Auth', 'Authentication endpoints for user registration and login')
-    .addTag('Users', 'User management endpoints for profile and user operations')
-    .addTag('Appointments', 'Appointment booking and management')
+    .addTag('Auth')
+    .addTag('Users')
+    .addTag('Appointments')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document, {
     customSiteTitle: 'Clinic Management API Docs',
-    customfavIcon: 'https://nestjs.com/img/logo-small.svg',
-    customCss: `
-      .topbar-wrapper .link {
-        content: url('https://nestjs.com/img/logo-small.svg');
-        height: 40px;
-        width: auto;
-      }
-      .swagger-ui .topbar { background-color: #E0234E; }
-    `,
     swaggerOptions: {
       persistAuthorization: true,
       docExpansion: 'none',
@@ -57,21 +53,7 @@ async function bootstrap() {
     },
   });
 
-  // --- CORS YAPILANDIRMASI BURADA ---
-  const corsOrigin = configService.get<string>('CORS_ORIGIN')?.split(',') || [
-    'https://clinic-management-ui.vercel.app',
-    'http://localhost:3000',
-  ];
-
- app.enableCors({
-  origin: true, 
-  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-  credentials: true,
-  allowedHeaders: 'Content-Type, Accept, Authorization',
-});
-  // ---------------------------------
-
-  // Global validation pipe
+  // 4. ADIM: Global Validation Pipe
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -83,13 +65,12 @@ async function bootstrap() {
     }),
   );
 
-  // Get port from environment
+  // 5. ADIM: Port ve Başlatma
   const port = configService.get<number>('PORT') || 3000;
-
   await app.listen(port);
 
   console.log(`
-    🚀 Application is running on:  http://localhost:${port}/${apiPrefix}
+    🚀 Application is running on: http://localhost:${port}/${apiPrefix}
     📊 Environment: ${configService.get<string>('NODE_ENV')}
     🗄️  Database: ${configService.get<string>('DB_DATABASE')}
   `);
