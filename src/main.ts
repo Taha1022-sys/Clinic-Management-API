@@ -21,7 +21,6 @@ async function bootstrap() {
       'RESTful API documentation for the Clinic Management System. This API provides endpoints for user authentication, patient management, doctor management, and appointments.',
     )
     .setVersion('1.0')
-    // 👇 BURASI KRİTİK: Anahtarın adını 'JWT-auth' koyduk.
     .addBearerAuth(
       {
         type: 'http',
@@ -31,7 +30,7 @@ async function bootstrap() {
         description: 'Enter JWT token',
         in: 'header',
       },
-      'JWT-auth', // <--- BU İSİM CONTROLLER İLE AYNI OLMAK ZORUNDA
+      'JWT-auth',
     )
     .addTag('Auth', 'Authentication endpoints for user registration and login')
     .addTag('Users', 'User management endpoints for profile and user operations')
@@ -58,14 +57,19 @@ async function bootstrap() {
     },
   });
 
-  // Enable CORS
+  // --- CORS YAPILANDIRMASI BURADA ---
   const corsOrigin = configService.get<string>('CORS_ORIGIN')?.split(',') || [
+    'https://clinic-management-ui.vercel.app',
     'http://localhost:3000',
   ];
+
   app.enableCors({
     origin: corsOrigin,
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
+    allowedHeaders: 'Content-Type, Accept, Authorization',
   });
+  // ---------------------------------
 
   // Global validation pipe
   app.useGlobalPipes(
